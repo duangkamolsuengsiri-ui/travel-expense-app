@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บันทึกการเดินทาง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1C2530;
+    --ink-soft: #4B5563;
+    --bg: #F6F7F5;
+    --surface: #FFFFFF;
+    --border: #D8DCD6;
+    --accent: #2C6E63;
+    --accent-soft: #E4EEEC;
+    --warn: #B8862B;
+    --warn-soft: #FBF1DF;
+    --danger: #B0432D;
+    --danger-soft: #FBE9E4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans Thai', system-ui, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 28px; }
+  header h1 { font-size: clamp(24px, 3.2vw, 32px); font-weight: 700; margin: 0 0 6px; }
+  header p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+  .grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--border); padding: 24px; }
+  .panel h2 { font-size: 15px; font-weight: 600; margin: 0 0 18px; color: var(--ink); }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 500; color: var(--ink-soft); margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--ink); font-family: inherit; font-size: 14px;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: 2px solid var(--accent); outline-offset: 1px; background: var(--surface);
+  }
+  .field input[readonly] { color: var(--ink-soft); background: #EEF0EE; }
+  .field small.hint { display: block; margin-top: 5px; font-size: 12px; color: var(--ink-soft); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } }
+  textarea { resize: vertical; min-height: 64px; }
+  button.submit {
+    width: 100%; padding: 13px 16px; background: var(--accent); color: #fff; border: none;
+    font-size: 15px; font-weight: 600; font-family: inherit; cursor: pointer; margin-top: 4px;
+  }
+  button.submit:disabled { opacity: .6; cursor: default; }
+  button.submit:hover:not(:disabled) { background: #245a51; }
+
+  .status-msg {
+    margin-top: 12px; padding: 12px 14px; font-size: 13.5px;
+    border-left: 3px solid var(--accent); background: var(--accent-soft); display: none;
+  }
+  .status-msg.show { display: block; }
+  .status-msg.warning { border-color: var(--warn); background: var(--warn-soft); }
+  .status-msg.exceeded { border-color: var(--danger); background: var(--danger-soft); }
+  .status-msg.error { border-color: var(--danger); background: var(--danger-soft); }
+
+  .receipt-preview { margin-top: 10px; display: none; flex-direction: column; gap: 8px; }
+  .receipt-preview.show { display: flex; }
+  .receipt-thumbs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .receipt-thumbs img { width: 56px; height: 56px; object-fit: cover; border: 1px solid var(--border); }
+  .receipt-preview button {
+    align-self: flex-start;
+    border: 1px solid var(--border); background: var(--surface); color: var(--ink-soft);
+    font-family: inherit; font-size: 12px; padding: 4px 8px; cursor: pointer;
+  }
+
+  .gauge-numbers { display: flex; justify-content: space-between; align-items: baseline; font-family: 'IBM Plex Mono', monospace; margin-bottom: 8px; }
+  .gauge-numbers .used { font-size: 22px; font-weight: 600; }
+  .gauge-numbers .of { font-size: 13px; color: var(--ink-soft); }
+  .bar-track { height: 10px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
+  .bar-fill { height: 100%; width: 0%; background: var(--accent); transition: width .35s ease; }
+  .bar-fill.warning { background: var(--warn); }
+  .bar-fill.exceeded { background: var(--danger); }
+  .gauge-remaining { margin-top: 8px; font-size: 13px; color: var(--ink-soft); font-family: 'IBM Plex Mono', monospace; }
+
+  .recent-list { margin-top: 22px; }
+  .recent-list h2 { margin-bottom: 10px; }
+  .entry { padding: 10px 0; border-top: 1px solid var(--border); font-size: 13.5px; }
+  .entry:first-of-type { border-top: none; }
+  .entry .top { display: flex; justify-content: space-between; font-weight: 500; }
+  .entry .amount { font-family: 'IBM Plex Mono', monospace; }
+  .entry .meta { color: var(--ink-soft); margin-top: 2px; }
+  .entry .photo-link { display: inline-block; margin-top: 4px; font-size: 12.5px; color: var(--accent); }
+  .empty-note { color: var(--ink-soft); font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>บันทึกการเดินทาง</h1>
+    <p>กรอกรายละเอียดการเดินทางของคุณ ระบบจะแจ้งเตือนอัตโนมัติเมื่อทีมใช้งบประมาณเกินที่กำหนดไว้ในแต่ละเดือน</p>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>รายละเอียดการเดินทาง</h2>
+      <form id="tripForm">
+        <div class="row2">
+          <div class="field">
+            <label for="employeeName">ชื่อพนักงาน</label>
+            <select id="employeeName" required>
+              <option value="" disabled selected>กำลังโหลด...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="employeeId">รหัสพนักงาน</label>
+            <input type="text" id="employeeId" readonly placeholder="เลือกชื่อก่อน">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="team">ทีม / แผนก</label>
+            <input type="text" id="team" readonly placeholder="เลือกชื่อก่อน">
+          </div>
+          <div class="field">
+            <label for="date">วันที่เดินทาง</label>
+            <input type="date" id="date" required>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="origin">ต้นทาง</label>
+            <input type="text" id="origin" required>
+          </div>
+          <div class="field">
+            <label for="destination">จุดหมายปลายทาง</label>
+            <input type="text" id="destination" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="purpose">วัตถุประสงค์การเดินทาง</label>
+          <input type="text" id="purpose" required>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="category">หมวดหมู่ค่าใช้จ่าย</label>
+            <select id="category" required>
+	             <option value="" disabled selected>กรุณาเลือก</option>
+              <option value="ค่าเดินทาง">ค่าเดินทาง</option>
+              <option value="ค่าส่งพัสดุ">ค่าส่งพัสดุ</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="amount">จำนวนเงิน (บาท)</label>
+            <input type="number" id="amount" min="0" step="0.01" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="receipt">แนบรูปใบเสร็จ (1-3 รูป)</label>
+          <input type="file" id="receipt" accept="image/*" multiple>
+          <small class="hint">เลือกได้อย่างน้อย 1 รูป สูงสุด 3 รูป ไฟล์ละไม่เกิน 5 MB</small>
+          <div class="receipt-preview" id="receiptPreview">
+            <div class="receipt-thumbs" id="receiptThumbs"></div>
+            <button type="button" id="receiptRemove">ลบทั้งหมด</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="note">หมายเหตุ (ถ้ามี)</label>
+          <textarea id="note"></textarea>
+        </div>
+        <button type="submit" class="submit" id="submitBtn">บันทึกรายการ</button>
+        <div class="status-msg" id="statusMsg" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>สถานะงบประมาณของทีม (เดือนนี้)</h2>
+      <div id="gauge">
+        <div class="gauge-numbers">
+          <span class="used" id="usedAmount">—</span>
+          <span class="of" id="budgetAmount">จากวงเงิน —</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+        <div class="gauge-remaining" id="remainingText">เลือกทีมเพื่อดูสถานะ</div>
+      </div>
+
+      <div class="recent-list">
+        <h2>รายการล่าสุดของทีม</h2>
+        <div id="recentEntries"><p class="empty-note">ยังไม่มีข้อมูล</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // วาง Web App URL จาก Google Apps Script ที่นี่ (ดูวิธีติดตั้งในคำแนะนำที่แนบมา)
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw8xZN7sLPQfJTEynxo86pcCz-jMPbZ6iIE1Z-X3h46n-tukYS6D3WPPa9rjMINfEU2FA/exec?action=teams';
+  const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MB
+
+  const employeeSelect = document.getElementById('employeeName');
+  const employeeIdInput = document.getElementById('employeeId');
+  const teamInput = document.getElementById('team');
+  const dateInput = document.getElementById('date');
+  const form = document.getElementById('tripForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const statusMsg = document.getElementById('statusMsg');
+  const usedAmountEl = document.getElementById('usedAmount');
+  const budgetAmountEl = document.getElementById('budgetAmount');
+  const barFillEl = document.getElementById('barFill');
+  const remainingTextEl = document.getElementById('remainingText');
+  const recentEntriesEl = document.getElementById('recentEntries');
+  const receiptInput = document.getElementById('receipt');
+  const receiptPreview = document.getElementById('receiptPreview');
+  const receiptThumbsEl = document.getElementById('receiptThumbs');
+  const receiptRemoveBtn = document.getElementById('receiptRemove');
+
+  let employeesById = {};
+  let selectedPhotoFiles = [];
+
+  dateInput.value = new Date().toISOString().slice(0, 10);
+
+  function money(n) {
+    return Number(n || 0).toLocaleString('th-TH', { maximumFractionDigits: 0 });
+  }
+
+  function setStatusMsg(text, kind) {
+    statusMsg.textContent = text;
+    statusMsg.className = 'status-msg show' + (kind ? ' ' + kind : '');
+  }
+
+  function clearStatusMsg() {
+    statusMsg.className = 'status-msg';
+  }
+
+  function renderGauge(status) {
+    if (!status || status.error || !status.budget) {
+      usedAmountEl.textContent = '—';
+      budgetAmountEl.textContent = 'จากวงเงิน —';
+      barFillEl.style.width = '0%';
+      barFillEl.className = 'bar-fill';
+      remainingTextEl.textContent = 'ยังไม่ได้ตั้งวงเงินสำหรับทีมนี้ในชีต Budget';
+      return;
+    }
+    usedAmountEl.textContent = money(status.used) + ' บาท';
+    budgetAmountEl.textContent = 'จากวงเงิน ' + money(status.budget) + ' บาท';
+    const pct = Math.min(status.percent || 0, 100);
+    barFillEl.style.width = pct + '%';
+    barFillEl.className = 'bar-fill' + (status.alertLevel === 'exceeded' ? ' exceeded' : status.alertLevel === 'warning' ? ' warning' : '');
+    remainingTextEl.textContent = status.alertLevel === 'exceeded'
+      ? 'เกินวงเงิน ' + money(Math.abs(status.remaining)) + ' บาท'
+      : 'คงเหลือ ' + money(status.remaining) + ' บาท (' + (status.percent || 0) + '%)';
+  }
+
+  function renderRecent(entries) {
+    if (!entries || entries.length === 0) {
+      recentEntriesEl.innerHTML = '<p class="empty-note">ยังไม่มีข้อมูล</p>';
+      return;
+    }
+    recentEntriesEl.innerHTML = entries.map(function (e) {
+      const photoUrls = String(e.photoUrl || '').split('\n').filter(Boolean);
+      const photoHtml = photoUrls.map(function (url, i) {
+        return '<a class="photo-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener">ใบเสร็จ ' + (i + 1) + '</a>';
+      }).join(' ');
+      return '<div class="entry">' +
+        '<div class="top"><span>' + escapeHtml(e.employeeName) + '</span><span class="amount">' + money(e.amount) + ' บาท</span></div>' +
+        '<div class="meta">' + escapeHtml(e.origin) + ' → ' + escapeHtml(e.destination) + ' · ' + escapeHtml(String(e.date).slice(0, 10)) + '</div>' +
+        photoHtml +
+        '</div>';
+    }).join('');
+  }
+
+  function escapeHtml(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function apiGet(params) {
+    const url = SCRIPT_URL + '?' + new URLSearchParams(params).toString();
+    return fetch(url).then(function (r) { return r.json(); });
+  }
+
+  function apiPost(payload) {
+    // ใช้ text/plain เพื่อเลี่ยง CORS preflight ที่ Apps Script ไม่รองรับ
+    return fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    }).then(function (r) { return r.json(); });
+  }
+
+  function loadTeamData(team) {
+    if (!team) return;
+    apiGet({ action: 'status', team: team }).then(renderGauge).catch(function () {});
+    apiGet({ action: 'recent', team: team, limit: 5 }).then(function (res) {
+      renderRecent(res.entries);
+    }).catch(function () {});
+  }
+
+  function loadEmployees() {
+    apiGet({ action: 'employees' }).then(function (res) {
+      employeeSelect.innerHTML = '';
+      if (!res.employees || res.employees.length === 0) {
+        employeeSelect.innerHTML = '<option value="" disabled selected>ยังไม่ได้ตั้งค่ารายชื่อในชีต Employees</option>';
+        return;
+      }
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'กรุณาเลือกชื่อพนักงาน';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      employeeSelect.appendChild(placeholder);
+
+      res.employees.forEach(function (emp) {
+        employeesById[emp.name] = emp;
+        const opt = document.createElement('option');
+        opt.value = emp.name;
+        opt.textContent = emp.name;
+        employeeSelect.appendChild(opt);
+      });
+      applyEmployeeSelection(employeeSelect.value);
+    }).catch(function () {
+      employeeSelect.innerHTML = '<option value="" disabled selected>เชื่อมต่อไม่สำเร็จ — ตรวจสอบ SCRIPT_URL</option>';
+    });
+  }
+
+  function applyEmployeeSelection(name) {
+    const emp = employeesById[name];
+    employeeIdInput.value = emp ? emp.id : '';
+    if (emp && emp.team) {
+      teamInput.value = emp.team;
+      teamInput.placeholder = '';
+      loadTeamData(emp.team);
+    } else {
+      teamInput.value = '';
+      teamInput.placeholder = name ? 'ไม่พบทีมของพนักงานนี้ในชีต Employees' : 'เลือกชื่อก่อน';
+      renderGauge(null);
+      renderRecent([]);
+    }
+  }
+
+  employeeSelect.addEventListener('change', function () {
+    applyEmployeeSelection(employeeSelect.value);
+  });
+
+  receiptInput.addEventListener('change', function () {
+    const files = Array.from(receiptInput.files || []);
+    if (files.length > 3) {
+      setStatusMsg('แนบได้สูงสุด 3 รูป กรุณาเลือกใหม่', 'error');
+      receiptInput.value = '';
+      clearReceipt();
+      return;
+    }
+    const oversized = files.find(function (f) { return f.size > MAX_PHOTO_BYTES; });
+    if (oversized) {
+      setStatusMsg('ไฟล์ "' + oversized.name + '" ใหญ่เกินไป (สูงสุด 5 MB ต่อไฟล์) กรุณาเลือกใหม่', 'error');
+      receiptInput.value = '';
+      clearReceipt();
+      return;
+    }
+    selectedPhotoFiles = files;
+    renderReceiptPreview();
+  });
+
+  receiptRemoveBtn.addEventListener('click', function () {
+    receiptInput.value = '';
+    clearReceipt();
+  });
+
+  function renderReceiptPreview() {
+    if (selectedPhotoFiles.length === 0) {
+      clearReceipt();
+      return;
+    }
+    receiptThumbsEl.innerHTML = '';
+    selectedPhotoFiles.forEach(function (file) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.alt = file.name;
+      receiptThumbsEl.appendChild(img);
+    });
+    receiptPreview.classList.add('show');
+  }
+
+  function clearReceipt() {
+    selectedPhotoFiles = [];
+    receiptThumbsEl.innerHTML = '';
+    receiptPreview.classList.remove('show');
+  }
+
+  function filesToBase64(files) {
+    return Promise.all(files.map(function (file) {
+      return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+        reader.onload = function () {
+          resolve({ base64: reader.result, mimeType: file.type, name: file.name });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }));
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearStatusMsg();
+
+    if (SCRIPT_URL.indexOf('PASTE_YOUR') === 0) {
+      setStatusMsg('ยังไม่ได้ตั้งค่า SCRIPT_URL ในไฟล์นี้ — ดูคำแนะนำการติดตั้ง', 'error');
+      return;
+    }
+    if (!employeeIdInput.value) {
+      setStatusMsg('ไม่พบรหัสพนักงานของชื่อที่เลือก กรุณาเลือกชื่ออีกครั้ง', 'error');
+      return;
+    }
+    if (!teamInput.value) {
+      setStatusMsg('ไม่พบทีมของพนักงานคนนี้ — กรุณาแจ้งผู้ดูแลระบบให้เพิ่มข้อมูลทีมในชีต Employees', 'error');
+      return;
+    }
+    if (selectedPhotoFiles.length < 1) {
+      setStatusMsg('กรุณาแนบรูปใบเสร็จอย่างน้อย 1 รูป', 'error');
+      return;
+    }
+
+    const basePayload = {
+      employeeId: employeeIdInput.value,
+      employeeName: employeeSelect.value,
+      team: teamInput.value,
+      date: dateInput.value,
+      origin: document.getElementById('origin').value.trim(),
+      destination: document.getElementById('destination').value.trim(),
+      purpose: document.getElementById('purpose').value.trim(),
+      category: document.getElementById('category').value,
+      amount: document.getElementById('amount').value,
+      note: document.getElementById('note').value.trim()
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังบันทึก...';
+
+    const photoPromise = filesToBase64(selectedPhotoFiles).then(function (photos) {
+      basePayload.photos = photos;
+    });
+
+    photoPromise.then(function () {
+      return apiPost(basePayload);
+    }).then(function (res) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'บันทึกรายการ';
+
+      if (res.error) {
+        setStatusMsg('บันทึกไม่สำเร็จ: ' + res.error, 'error');
+        return;
+      }
+
+      renderGauge(res);
+      loadTeamData(teamInput.value);
+
+      if (res.alertLevel === 'exceeded') {
+        setStatusMsg('บันทึกรายการเรียบร้อย — แต่ทีม "' + res.team + '" ใช้งบประมาณเกินวงเงินที่กำหนดแล้ว', 'exceeded');
+      } else if (res.alertLevel === 'warning') {
+        setStatusMsg('บันทึกรายการเรียบร้อย — ทีม "' + res.team + '" ใกล้ครบวงเงินแล้ว (' + res.percent + '%)', 'warning');
+      } else {
+        setStatusMsg('บันทึกรายการเรียบร้อยแล้ว', '');
+      }
+
+      const keepEmployee = employeeSelect.value;
+      form.reset();
+      dateInput.value = new Date().toISOString().slice(0, 10);
+      document.getElementById('category').value = 'ค่าเดินทาง';
+      employeeSelect.value = keepEmployee;
+      applyEmployeeSelection(keepEmployee);
+      receiptInput.value = '';
+      clearReceipt();
+    }).catch(function () {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'บันทึกรายการ';
+      setStatusMsg('เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'error');
+    });
+  });
+
+  loadEmployees();
+</script>
+</body>
+</html>
