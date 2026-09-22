@@ -47,6 +47,8 @@
     outline: 2px solid var(--accent); outline-offset: 1px; background: var(--surface);
   }
   .field input[readonly] { color: var(--ink-soft); background: #EEF0EE; }
+  input[type="date"] { text-align: left; }
+  input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
   .field small.hint { display: block; margin-top: 5px; font-size: 12px; color: var(--ink-soft); }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 480px) { .row2 { grid-template-columns: 1fr; } }
@@ -147,10 +149,11 @@
         <div class="row2">
           <div class="field">
             <label for="category">หมวดหมู่ค่าใช้จ่าย</label>
-            <select id="category" required>
-	             <option value="" disabled selected>กรุณาเลือก</option>
+            <select id="category">
               <option value="ค่าเดินทาง">ค่าเดินทาง</option>
-              <option value="ค่าส่งพัสดุ">ค่าส่งพัสดุ</option>
+              <option value="ที่พัก">ที่พัก</option>
+              <option value="อาหาร">อาหาร</option>
+              <option value="อื่นๆ">อื่นๆ</option>
             </select>
           </div>
           <div class="field">
